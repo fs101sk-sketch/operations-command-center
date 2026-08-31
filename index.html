@@ -3819,7 +3819,7 @@ body.presentation-mode{overflow:hidden!important;background:#1d2421!important}bo
     window.addEventListener('plan:event-deleted',event=>{const e=event.detail;if(!e?.sourceType)return;const record=recordBy(e.sourceType,e.sourceId);if(!record)return;pushDataUndo();if(e.sourceType==='visits'){record.startDate='';record.endDate=''}if(['reports','tasks','decisions'].includes(e.sourceType))record.dueDate='';if(e.sourceType==='tasks')record.startDate='';if(e.sourceType==='meetings')record.date='';renderAllExceptCalendar();saveData();updateUndoButtons()});
   }
 
-  window.PlanOperatingUI={renderEventDetail,renderEventPeople,getData:()=>data,setData:value=>{data={...blankData(),...(clone(value)||{})};dataUndo=[];dataRedo=[];renderAll();saveData()},openRecord};
+  window.PlanOperatingUI={renderEventDetail,renderEventPeople,getData:()=>data,setData:value=>{data={...blankData(),...(clone(value)||{})};dataUndo=[];dataRedo=[];renderAll();saveData()},openRecord,rehydrate:()=>{ensureOperatingPages();enhanceVisitsPage();renderAll();refreshGovNavigation()}};
   loadData();installGlobalInterface();ensureOperatingPages();enhanceVisitsPage();bindOperating();renderAll();saveData();
 })();
 </script>
@@ -4164,7 +4164,7 @@ body.presentation-mode{overflow:hidden!important;background:#1d2421!important}bo
     const payload=currentSlides().map(({slide,key,title,position})=>({page_key:key,title,position,public_visible:true,content:{html:slide.outerHTML}}));
     await rpc('app_admin_register_pages',{p_token:session().local_token,p_pages:payload});
   }
-  async function loadSections(){const rows=accessBundle.sections||[];if(!rows.length||sectionsLoaded)return;deck.innerHTML=rows.map(row=>row.content?.html||'').join('');sectionsLoaded=true;window.PlanEditorAPI?.renderCalendar?.();window.PlanStudioAPI?.renderPageManager?.()}
+  async function loadSections(){const rows=accessBundle.sections||[];if(!rows.length||sectionsLoaded)return;deck.innerHTML=rows.map(row=>row.content?.html||'').join('');sectionsLoaded=true;window.PlanOperatingUI?.rehydrate?.();window.PlanEditorAPI?.renderCalendar?.();window.PlanStudioAPI?.renderPageManager?.()}
   function saveSections(){if(!session()?.local_token)return;clearTimeout(sectionSaveTimer);sectionSaveTimer=setTimeout(async()=>{for(const {slide,key} of currentSlides()){if(profile?.role!=='admin'&&!can(key,'edit'))continue;const known=(accessBundle.sections||[]).find(x=>x.page_key===key),version=Number(known?.version||1);try{const next=await rpc('app_save_section',{p_token:session().local_token,p_page_key:key,p_content:{html:slide.outerHTML},p_version:version});if(known)known.version=next}catch(_){}}},1100)}
   function ensureAdminButton(){if(document.getElementById('access-admin-button'))return;const b=document.createElement('button');b.id='access-admin-button';b.className='access-admin-button';b.textContent='⚿ المستخدمون والصلاحيات';b.dataset.editorUi='true';document.querySelector('.cloud-bar')?.appendChild(b);b.onclick=openManager}
   function permMatrix(targetId,selected=[]){const map=new Map(selected.map(p=>[p.page_key,p]));document.getElementById(targetId).innerHTML=`<table class="access-table"><thead><tr><th>الصفحة</th><th>عرض</th><th>تعديل</th><th>إضافة</th><th>حذف</th><th>إسناد</th></tr></thead><tbody>${pages.map(p=>{const x=map.get(p.page_key)||{};return`<tr data-perm-page="${p.page_key}"><td>${p.title}</td>${['view','edit','create','delete','assign'].map(a=>`<td><input type="checkbox" data-perm="${a}" ${x[`can_${a}`]?'checked':''}></td>`).join('')}</tr>`}).join('')}</tbody></table>`}
