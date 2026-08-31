@@ -3978,11 +3978,11 @@ body.presentation-mode{overflow:hidden!important;background:#1d2421!important}bo
     <button type="button" class="cloud-auth-close" id="cloud-auth-close">×</button>
     <h3>الدخول إلى وضع التحرير</h3>
     <p>المشاهدة متاحة للجميع. التعديل والحفظ المباشر متاحان للحساب المخوّل فقط.</p>
-    <label for="cloud-email">البريد الإلكتروني</label>
-    <input id="cloud-email" type="email" value="fs101sk@gmail.com" autocomplete="email">
+    <label for="cloud-email">اسم المستخدم</label>
+    <input id="cloud-email" type="text" value="Admin" autocomplete="username">
     <label for="cloud-password">كلمة المرور</label>
     <input id="cloud-password" type="password" minlength="8" autocomplete="current-password" placeholder="8 أحرف على الأقل">
-    <div class="cloud-auth-actions"><button type="button" id="cloud-signup">إنشاء الحساب أول مرة</button><button type="button" class="primary" id="cloud-signin">دخول</button></div>
+    <div class="cloud-auth-actions"><button type="button" class="primary" id="cloud-signin">دخول</button></div>
     <div class="cloud-auth-message" id="cloud-auth-message"></div>
   </div>
 </div>
@@ -3992,7 +3992,6 @@ body.presentation-mode{overflow:hidden!important;background:#1d2421!important}bo
   const PROJECT_URL='https://wvffzanqckpepxbnycje.supabase.co';
   const PUBLISHABLE_KEY='sb_publishable_XA8SCAdLWfa_4rl0feL7_A_RHLGQREj';
   const AUTH_KEY='operations-command-center-auth-v1';
-  const OWNER_EMAIL='fs101sk@gmail.com';
   const indicator=document.getElementById('cloud-indicator'),account=document.getElementById('cloud-account'),authButton=document.getElementById('cloud-auth-button'),modal=document.getElementById('cloud-auth-modal'),message=document.getElementById('cloud-auth-message');
   let session=null,remoteVersion=0,dirty=false,saving=false,saveTimer=null,pollTimer=null;
   document.body.classList.remove('cloud-editor');
@@ -4008,7 +4007,7 @@ body.presentation-mode{overflow:hidden!important;background:#1d2421!important}bo
   }
   function storeSession(value){session=value||null;if(session)localStorage.setItem(AUTH_KEY,JSON.stringify(session));else localStorage.removeItem(AUTH_KEY);updateAccess()}
   function updateAccess(){
-    const editor=Boolean(session?.access_token&&String(session.user?.email||'').toLowerCase()===OWNER_EMAIL);
+    const editor=Boolean(session?.access_token&&document.body.classList.contains('access-is-admin'));
     document.body.classList.toggle('cloud-editor',editor);
     account.textContent=editor?session.user.email:'عرض عام';
     authButton.textContent=editor?'تسجيل الخروج':'تسجيل الدخول للتعديل';
@@ -4030,7 +4029,7 @@ body.presentation-mode{overflow:hidden!important;background:#1d2421!important}bo
     }finally{setTimeout(()=>{window.__cloudApplying=false},800)}
   }
   async function loadRemote({apply=true}={}){
-    const rows=await request('/rest/v1/plan_state?id=eq.main&select=payload,version,updated_at');
+    let rows;try{rows=await request('/rest/v1/plan_state?id=eq.main&select=payload,version,updated_at')}catch(error){if(window.__sectionAccessEnabled){setStatus('متصل بصلاحيات الصفحات','online');return null}throw error}
     const row=rows?.[0];if(!row)return null;
     if(apply&&row.version>remoteVersion&&!dirty)applyPayload(row.payload);
     remoteVersion=Number(row.version)||1;setStatus('متصل ومحدّث','online');return row;
@@ -4051,15 +4050,8 @@ body.presentation-mode{overflow:hidden!important;background:#1d2421!important}bo
     dirty=true;setStatus('تغييرات غير محفوظة');clearTimeout(saveTimer);saveTimer=setTimeout(saveRemote,1400);
   }
   async function signIn(){
-    message.textContent='';const email=document.getElementById('cloud-email').value.trim().toLowerCase(),password=document.getElementById('cloud-password').value;
-    if(email!==OWNER_EMAIL){message.textContent='هذا البريد غير مخوّل بالتعديل.';return}
-    try{const value=await request('/auth/v1/token?grant_type=password',{method:'POST',body:JSON.stringify({email,password})});storeSession(value);modal.classList.remove('open');await loadRemote();if(!value?.access_token)throw new Error('لم تكتمل جلسة الدخول')}catch(error){message.textContent=error.message}
-  }
-  async function signUp(){
-    message.textContent='';const email=document.getElementById('cloud-email').value.trim().toLowerCase(),password=document.getElementById('cloud-password').value;
-    if(email!==OWNER_EMAIL){message.textContent='إنشاء حساب التحرير مقصور على البريد المخوّل.';return}
-    if(password.length<8){message.textContent='كلمة المرور يجب أن تكون 8 أحرف على الأقل.';return}
-    try{const value=await request('/auth/v1/signup',{method:'POST',body:JSON.stringify({email,password})});if(value?.access_token){storeSession(value);modal.classList.remove('open');await loadRemote()}else message.textContent='تم إنشاء الحساب. تحقق من البريد لتأكيده ثم سجّل الدخول.'}catch(error){message.textContent=error.message}
+    message.textContent='';const username=document.getElementById('cloud-email').value.trim(),password=document.getElementById('cloud-password').value;
+    try{const value=await request('/functions/v1/username-login',{method:'POST',body:JSON.stringify({username,password})});storeSession(value.session?{...value.session,user:value.user}:value);if(username.toLowerCase()==='admin'){try{await request('/functions/v1/user-admin',{method:'POST',authenticated:true,body:JSON.stringify({action:'bootstrap_profile'})})}catch(error){if(!String(error.message).includes('مسبقًا'))throw error}}modal.classList.remove('open');await loadRemote();window.dispatchEvent(new CustomEvent('plan:session-changed',{detail:{session:session,username}}));if(!session?.access_token)throw new Error('لم تكتمل جلسة الدخول')}catch(error){message.textContent=error.message}
   }
   async function restoreSession(){
     try{session=JSON.parse(localStorage.getItem(AUTH_KEY)||'null')}catch(_){session=null}
@@ -4072,13 +4064,80 @@ body.presentation-mode{overflow:hidden!important;background:#1d2421!important}bo
   document.getElementById('cloud-auth-close').addEventListener('click',()=>modal.classList.remove('open'));
   modal.addEventListener('click',event=>{if(event.target===modal)modal.classList.remove('open')});
   document.getElementById('cloud-signin').addEventListener('click',signIn);
-  document.getElementById('cloud-signup').addEventListener('click',signUp);
   document.getElementById('cloud-password').addEventListener('keydown',event=>{if(event.key==='Enter')signIn()});
   document.getElementById('cloud-presentation').addEventListener('click',()=>document.getElementById('start-presentation')?.click());
   window.addEventListener('plan:local-changed',markDirty);
   window.addEventListener('online',()=>loadRemote().catch(()=>setStatus('تعذر الاتصال','error')));
   window.addEventListener('offline',()=>setStatus('غير متصل','error'));
-  (async()=>{await restoreSession();try{const row=await loadRemote();if(session?.access_token&&(!row?.payload||!row.payload.schemaVersion)){dirty=true;await saveRemote()}}catch(error){setStatus('تعذر الاتصال','error')}pollTimer=setInterval(()=>{if(!saving)loadRemote().catch(()=>setStatus('تعذر الاتصال','error'))},5000)})();
+  window.PlanCloudAuth={getSession:()=>session,request,storeSession};
+  (async()=>{await restoreSession();window.dispatchEvent(new CustomEvent('plan:session-changed',{detail:{session}}));try{const row=await loadRemote();if(session?.access_token&&(!row?.payload||!row.payload.schemaVersion)){dirty=true;await saveRemote()}}catch(error){setStatus('تعذر الاتصال','error')}pollTimer=setInterval(()=>{if(!saving)loadRemote().catch(()=>setStatus('تعذر الاتصال','error'))},5000)})();
+})();
+</script>
+<style id="access-control-styles">
+  .access-admin-button{display:none!important}.access-is-admin .access-admin-button{display:inline-flex!important}
+  .access-modal{position:fixed;inset:0;z-index:13000;display:none;place-items:center;padding:18px;background:rgba(18,35,39,.58);backdrop-filter:blur(8px);direction:rtl}.access-modal.open{display:grid}
+  .access-card{width:min(1100px,97vw);max-height:92vh;overflow:auto;background:#f8faf9;border-radius:22px;padding:20px;box-shadow:0 28px 80px rgba(12,32,37,.3);font-family:inherit}.access-head{display:flex;align-items:center;justify-content:space-between;gap:10px}.access-head h2{margin:0;color:#153d36}.access-head button{border:0;background:#fff;border-radius:9px;width:34px;height:34px;font-size:20px;cursor:pointer}
+  .access-tabs{display:flex;gap:7px;margin:14px 0}.access-tabs button{border:1px solid #d6dfdc;border-radius:10px;background:#fff;padding:9px 13px;font:800 12px inherit;cursor:pointer}.access-tabs button.active{background:#185a4a;color:#fff}.access-pane{display:none}.access-pane.active{display:block}
+  .access-table{width:100%;border-collapse:separate;border-spacing:0 6px}.access-table th{font-size:11px;color:#687974}.access-table td{background:#fff;border-top:1px solid #e0e6e3;border-bottom:1px solid #e0e6e3;padding:9px;font-size:11px}.access-table td:first-child{border-radius:0 10px 10px 0;font-weight:800}.access-table td:last-child{border-radius:10px 0 0 10px}.access-table input[type=checkbox]{width:17px;height:17px;accent-color:#185a4a}
+  .access-form{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:13px}.access-form input,.access-form select{height:40px;border:1px solid #d5dedb;border-radius:10px;background:#fff;padding:0 10px;font:inherit}.access-action{border:0;border-radius:10px;background:#185a4a;color:#fff;padding:10px 15px;font:800 12px inherit;cursor:pointer}.access-secondary{background:#fff;color:#185a4a;border:1px solid #cbd8d4}.access-user-card{background:#fff;border:1px solid #dce4e1;border-radius:12px;padding:11px;margin:7px 0;display:flex;justify-content:space-between;align-items:center;gap:10px}.access-user-card small{display:block;color:#75847f;margin-top:3px}
+  .slide[data-access-visible="false"]{display:none!important}.slide[data-access-edit="false"]{--access-lock-opacity:.72}.slide[data-access-edit="false"] [contenteditable]{pointer-events:none!important}.slide[data-access-edit="false"]::after{content:"عرض فقط";position:absolute;left:112px;top:24px;z-index:7;background:#eef3f1;color:#61736d;border:1px solid #d4dfdb;border-radius:8px;padding:5px 8px;font-size:8px;font-weight:900}
+  @media(max-width:760px){.access-form{grid-template-columns:1fr}.access-card{padding:12px}.access-table{min-width:760px}.access-pane{overflow:auto}}
+</style>
+<div class="access-modal" id="access-modal" data-editor-ui="true"><div class="access-card">
+  <div class="access-head"><div><h2>المستخدمون والصلاحيات</h2><div id="access-admin-note">إدارة ظهور الصفحات وصلاحيات كل مستخدم</div></div><button id="access-close">×</button></div>
+  <div class="access-tabs"><button class="active" data-access-tab="pages">ظهور الصفحات</button><button data-access-tab="users">المستخدمون</button></div>
+  <section class="access-pane active" data-access-pane="pages"><table class="access-table"><thead><tr><th>الصفحة</th><th>تظهر للعامة</th><th>الترتيب</th></tr></thead><tbody id="access-pages-body"></tbody></table><button class="access-action" id="access-save-pages">حفظ ظهور الصفحات</button></section>
+  <section class="access-pane" data-access-pane="users"><div class="access-form"><input id="access-new-username" placeholder="اسم المستخدم"><input id="access-new-name" placeholder="الاسم الظاهر"><input id="access-new-password" type="password" placeholder="كلمة مرور مؤقتة قوية"><select id="access-new-role"><option value="viewer">مشاهد</option><option value="contributor">منفذ مهام</option><option value="editor">محرر</option></select></div><div id="access-new-permissions"></div><button class="access-action" id="access-create-user">إنشاء المستخدم بالصلاحيات المحددة</button><h3>الحسابات الحالية</h3><div id="access-users-list"></div></section>
+  <div id="access-message"></div>
+</div>
+<script>
+(() => {
+  'use strict';
+  window.__sectionAccessEnabled=true;
+  const deck=document.querySelector('.deck'),modal=document.getElementById('access-modal'),msg=document.getElementById('access-message');
+  let profile=null,pages=[],permissions=[],users=[],sectionSaveTimer=null,sectionsLoaded=false;
+  const auth=()=>window.PlanCloudAuth,session=()=>auth()?.getSession?.();
+  const pageKey=(slide,index)=>{if(!slide.dataset.accessKey)slide.dataset.accessKey=slide.dataset.pageId||slide.dataset.govPageId||`page-${String(index+1).padStart(2,'0')}`;return slide.dataset.accessKey};
+  const currentSlides=()=>Array.from(deck.querySelectorAll(':scope > .slide')).map((slide,index)=>({slide,key:pageKey(slide,index),title:(slide.querySelector('h1,h2')?.textContent||`الصفحة ${index+1}`).replace(/\s+/g,' ').trim().slice(0,120),position:index}));
+  async function api(path,options={}){return auth().request(path,{...options,authenticated:true})}
+  function can(key,action){if(profile?.role==='admin')return true;const p=permissions.find(x=>x.page_key===key);return Boolean(p?.[`can_${action}`])}
+  function applyVisibility(){
+    const registered=new Map(pages.map(p=>[p.page_key,p]));
+    currentSlides().forEach(({slide,key})=>{const record=registered.get(key),visible=!pages.length||profile?.role==='admin'||Boolean(record&&(record.public_visible||can(key,'view'))),editable=profile?.role==='admin'||can(key,'edit');slide.dataset.accessVisible=String(visible);slide.dataset.accessEdit=String(editable);slide.querySelectorAll('[contenteditable]').forEach(el=>{if(!editable)el.contentEditable='false'})});
+    document.body.classList.toggle('access-is-admin',profile?.role==='admin');
+    const allowed=profile?.role==='admin'||permissions.some(p=>p.can_edit);document.body.classList.toggle('cloud-editor',Boolean(session()?.access_token&&allowed));
+  }
+  async function loadAccess(){
+    try{
+      const s=session();profile=null;permissions=[];
+      if(s?.user?.id){const p=await api(`/rest/v1/profiles?user_id=eq.${s.user.id}&select=*`);profile=p?.[0]||null;if(profile){permissions=await api(`/rest/v1/page_permissions?user_id=eq.${s.user.id}&select=*`)||[]}}
+      pages=await (s?.access_token?api('/rest/v1/app_pages?active=eq.true&select=*&order=position.asc'):auth().request('/rest/v1/app_pages?active=eq.true&select=*&order=position.asc'))||[];
+      if(profile?.role==='admin'&&!pages.length)await registerPages();
+      await loadSections();applyVisibility();ensureAdminButton();
+    }catch(error){msg.textContent=error.message;applyVisibility()}
+  }
+  async function registerPages(){
+    const rows=currentSlides().map(({key,title,position})=>({page_key:key,title,position,public_visible:true,active:true,updated_by:session().user.id}));
+    await api('/rest/v1/app_pages?on_conflict=page_key',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=representation'},body:JSON.stringify(rows)});
+    pages=await api('/rest/v1/app_pages?select=*&order=position.asc')||[];
+    const existing=await api('/rest/v1/plan_sections?select=page_key')||[];
+    if(!existing.length){const sectionRows=currentSlides().map(({slide,key})=>({page_key:key,content:{html:slide.outerHTML},version:1,updated_by:session().user.id}));await api('/rest/v1/plan_sections?on_conflict=page_key',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(sectionRows)})}
+  }
+  async function loadSections(){const path='/rest/v1/plan_sections?select=page_key,content,version&order=page_key.asc',rows=await (session()?.access_token?api(path):auth().request(path))||[];if(!rows.length||sectionsLoaded)return;const order=new Map(pages.map(p=>[p.page_key,p.position]));rows.sort((a,b)=>(order.get(a.page_key)||0)-(order.get(b.page_key)||0));deck.innerHTML=rows.map(row=>row.content?.html||'').join('');sectionsLoaded=true;window.PlanEditorAPI?.renderCalendar?.();window.PlanStudioAPI?.renderPageManager?.()}
+  function saveSections(){if(!session()?.access_token)return;clearTimeout(sectionSaveTimer);sectionSaveTimer=setTimeout(async()=>{for(const {slide,key} of currentSlides()){if(profile?.role!=='admin'&&!can(key,'edit'))continue;const current=await api(`/rest/v1/plan_sections?page_key=eq.${encodeURIComponent(key)}&select=version`),version=Number(current?.[0]?.version||0);const payload={content:{html:slide.outerHTML},version:version+1,updated_at:new Date().toISOString(),updated_by:session().user.id};if(version)await api(`/rest/v1/plan_sections?page_key=eq.${encodeURIComponent(key)}`,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify(payload)});else if(profile?.role==='admin'||can(key,'create'))await api('/rest/v1/plan_sections',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({...payload,page_key:key})})}},1100)}
+  function ensureAdminButton(){if(document.getElementById('access-admin-button'))return;const b=document.createElement('button');b.id='access-admin-button';b.className='access-admin-button';b.textContent='⚿ المستخدمون والصلاحيات';b.dataset.editorUi='true';document.querySelector('.cloud-bar')?.appendChild(b);b.onclick=openManager}
+  function permMatrix(targetId,selected=[]){const map=new Map(selected.map(p=>[p.page_key,p]));document.getElementById(targetId).innerHTML=`<table class="access-table"><thead><tr><th>الصفحة</th><th>عرض</th><th>تعديل</th><th>إضافة</th><th>حذف</th><th>إسناد</th></tr></thead><tbody>${pages.map(p=>{const x=map.get(p.page_key)||{};return`<tr data-perm-page="${p.page_key}"><td>${p.title}</td>${['view','edit','create','delete','assign'].map(a=>`<td><input type="checkbox" data-perm="${a}" ${x[`can_${a}`]?'checked':''}></td>`).join('')}</tr>`}).join('')}</tbody></table>`}
+  function readMatrix(root){return Array.from(document.querySelectorAll(`#${root} [data-perm-page]`)).map(row=>({page_key:row.dataset.permPage,...Object.fromEntries(['view','edit','create','delete','assign'].map(a=>[`can_${a}`,row.querySelector(`[data-perm="${a}"]`).checked]))}))}
+  async function openManager(){modal.classList.add('open');await registerPages();renderPages();permMatrix('access-new-permissions');await renderUsers()}
+  function renderPages(){document.getElementById('access-pages-body').innerHTML=pages.map(p=>`<tr data-admin-page="${p.page_key}"><td>${p.title}</td><td><input type="checkbox" data-public-visible ${p.public_visible?'checked':''}></td><td><input type="number" data-page-position value="${p.position}" style="width:70px"></td></tr>`).join('')}
+  async function savePages(){const rows=Array.from(document.querySelectorAll('[data-admin-page]')).map(row=>({page_key:row.dataset.adminPage,public_visible:row.querySelector('[data-public-visible]').checked,position:Number(row.querySelector('[data-page-position]').value)||0,updated_at:new Date().toISOString(),updated_by:session().user.id}));for(const row of rows)await api(`/rest/v1/app_pages?page_key=eq.${encodeURIComponent(row.page_key)}`,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify(row)});msg.textContent='تم حفظ ظهور الصفحات';await loadAccess()}
+  async function createUser(){const username=document.getElementById('access-new-username').value.trim(),displayName=document.getElementById('access-new-name').value.trim(),password=document.getElementById('access-new-password').value,role=document.getElementById('access-new-role').value;try{await api('/functions/v1/user-admin',{method:'POST',body:JSON.stringify({action:'create_user',username,displayName,password,role,permissions:readMatrix('access-new-permissions')})});msg.textContent='تم إنشاء المستخدم';document.getElementById('access-new-password').value='';await renderUsers()}catch(error){msg.textContent=error.message}}
+  async function renderUsers(){users=await api('/rest/v1/profiles?select=*&order=created_at.asc')||[];document.getElementById('access-users-list').innerHTML=users.map(u=>`<div class="access-user-card"><div><b>${u.username}</b><small>${u.display_name} · ${u.role} · ${u.active?'نشط':'معطل'}</small></div><button class="access-action access-secondary" data-edit-user="${u.user_id}">الصلاحيات</button></div>`).join('')}
+  async function editUser(id){const selected=await api(`/rest/v1/page_permissions?user_id=eq.${id}&select=*`)||[];const holder=document.createElement('div');holder.id='access-edit-permissions';holder.innerHTML='<h3>تعديل صلاحيات المستخدم</h3><div id="access-edit-matrix"></div><button class="access-action" id="access-save-user-perms">حفظ الصلاحيات</button>';document.getElementById('access-users-list').prepend(holder);permMatrix('access-edit-matrix',selected);document.getElementById('access-save-user-perms').onclick=async()=>{const rows=readMatrix('access-edit-matrix').map(p=>({...p,user_id:id,updated_by:session().user.id}));await api(`/rest/v1/page_permissions?user_id=eq.${id}`,{method:'DELETE'});await api('/rest/v1/page_permissions',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify(rows)});msg.textContent='تم تحديث صلاحيات المستخدم'}}
+  document.getElementById('access-close').onclick=()=>modal.classList.remove('open');document.getElementById('access-save-pages').onclick=savePages;document.getElementById('access-create-user').onclick=createUser;
+  document.addEventListener('click',e=>{const tab=e.target.closest('[data-access-tab]');if(tab){document.querySelectorAll('[data-access-tab]').forEach(x=>x.classList.toggle('active',x===tab));document.querySelectorAll('[data-access-pane]').forEach(x=>x.classList.toggle('active',x.dataset.accessPane===tab.dataset.accessTab))}const edit=e.target.closest('[data-edit-user]');if(edit)editUser(edit.dataset.editUser)},true);
+  document.addEventListener('click',e=>{const slide=e.target.closest('.slide[data-access-edit="false"]');if(slide&&e.target.closest('[contenteditable],[data-plan-editable]')){e.preventDefault();e.stopImmediatePropagation();msg.textContent='هذه الصفحة للعرض فقط حسب صلاحياتك'}},true);
+  window.addEventListener('plan:session-changed',loadAccess);window.addEventListener('plan:local-changed',saveSections);ensureAdminButton();setTimeout(loadAccess,700);
 })();
 </script>
 </body></html>
