@@ -4149,7 +4149,7 @@ body.presentation-mode{overflow:hidden!important;background:#1d2421!important}bo
   function can(key,action){if(profile?.role==='admin')return true;const p=permissions.find(x=>x.page_key===key);return Boolean(p?.[`can_${action}`])}
   function applyVisibility(){
     const registered=new Map(pages.map(p=>[p.page_key,p]));
-    currentSlides().forEach(({slide,key})=>{const record=registered.get(key),visible=!pages.length||profile?.role==='admin'||Boolean(record&&(record.public_visible||can(key,'view'))),editable=profile?.role==='admin'||can(key,'edit');slide.dataset.accessVisible=String(visible);slide.dataset.accessEdit=String(editable);slide.querySelectorAll('[contenteditable]').forEach(el=>{if(!editable)el.contentEditable='false'})});
+    currentSlides().forEach(({slide,key})=>{const record=registered.get(key),visible=!pages.length||!record||profile?.role==='admin'||Boolean(record&&(record.public_visible||can(key,'view'))),editable=profile?.role==='admin'||can(key,'edit');slide.dataset.accessVisible=String(visible);slide.dataset.accessEdit=String(editable);slide.querySelectorAll('[contenteditable]').forEach(el=>{if(!editable)el.contentEditable='false'})});
     document.body.classList.toggle('access-is-admin',profile?.role==='admin');
     const allowed=profile?.role==='admin'||permissions.some(p=>p.can_edit);document.body.classList.toggle('cloud-editor',Boolean(session()?.local_token&&allowed));
   }
