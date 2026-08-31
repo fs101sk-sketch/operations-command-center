@@ -4095,7 +4095,9 @@ body.presentation-mode .slide.slide-content-expanded{height:768px!important;over
   }
   function markDirty(){
     if(window.__cloudApplying||!document.body.classList.contains('cloud-editor'))return;
-    dirty=true;setStatus('تغييرات غير محفوظة');clearTimeout(saveTimer);saveTimer=setTimeout(saveRemote,1400);
+    dirty=true;
+    if(session?.local_token&&window.__sectionAccessEnabled){setStatus('جارٍ حفظ التغييرات');clearTimeout(saveTimer);return}
+    setStatus('تغييرات غير محفوظة');clearTimeout(saveTimer);saveTimer=setTimeout(saveRemote,1400);
   }
   async function signIn(){
     message.textContent='';const username=document.getElementById('cloud-email').value.trim(),password=document.getElementById('cloud-password').value;
@@ -4116,6 +4118,7 @@ body.presentation-mode .slide.slide-content-expanded{height:768px!important;over
   document.getElementById('cloud-password').addEventListener('keydown',event=>{if(event.key==='Enter')signIn()});
   document.getElementById('cloud-presentation').addEventListener('click',()=>document.getElementById('start-presentation')?.click());
   window.addEventListener('plan:local-changed',markDirty);
+  window.addEventListener('plan:sections-saved',event=>{const result=event.detail||{};if(result.success){dirty=false;setStatus('تم حفظ التغييرات','online')}else{dirty=true;setStatus('تعذر حفظ بعض التغييرات','error');message.textContent=result.message||'تعذر حفظ بعض الصفحات؛ أعد المحاولة'}});
   window.addEventListener('online',()=>loadRemote().catch(()=>setStatus('تعذر الاتصال','error')));
   window.addEventListener('offline',()=>setStatus('غير متصل','error'));
   window.PlanCloudAuth={getSession:()=>session,request,storeSession,rpc:(name,args={})=>request(`/rest/v1/rpc/${name}`,{method:'POST',body:JSON.stringify(args)})};
@@ -4172,7 +4175,7 @@ body.presentation-mode .slide.slide-content-expanded{height:768px!important;over
     await rpc('app_admin_register_pages',{p_token:session().local_token,p_pages:payload});
   }
   async function loadSections(){const rows=accessBundle.sections||[];if(!rows.length||sectionsLoaded){fitSlideLayouts();return}deck.innerHTML=rows.map(row=>row.content?.html||'').join('');removeDuplicatePageBatches();sectionsLoaded=true;window.PlanOperatingUI?.rehydrate?.();window.PlanEditorAPI?.renderCalendar?.();window.PlanStudioAPI?.renderPageManager?.();fitSlideLayouts()}
-  function saveSections(){if(!session()?.local_token)return;clearTimeout(sectionSaveTimer);sectionSaveTimer=setTimeout(async()=>{for(const {slide,key} of currentSlides()){if(profile?.role!=='admin'&&!can(key,'edit'))continue;const known=(accessBundle.sections||[]).find(x=>x.page_key===key),version=Number(known?.version||1);try{const next=await rpc('app_save_section',{p_token:session().local_token,p_page_key:key,p_content:{html:slide.outerHTML},p_version:version});if(known)known.version=next}catch(_){}}},1100)}
+  function saveSections(){if(!session()?.local_token)return;clearTimeout(sectionSaveTimer);sectionSaveTimer=setTimeout(async()=>{let saved=0,failed=0,lastError='';for(const {slide,key} of currentSlides()){if(profile?.role!=='admin'&&!can(key,'edit'))continue;const known=(accessBundle.sections||[]).find(x=>x.page_key===key),version=Number(known?.version||1),content={html:slide.outerHTML};try{const next=await rpc('app_save_section',{p_token:session().local_token,p_page_key:key,p_content:content,p_version:version});if(known){known.version=next;known.content=content}else{accessBundle.sections.push({page_key:key,version:next,content})}saved++}catch(error){failed++;lastError=error?.message||''}}window.dispatchEvent(new CustomEvent('plan:sections-saved',{detail:{success:failed===0,saved,failed,message:lastError}}))},1100)}
   function ensureAdminButton(){if(document.getElementById('access-admin-button'))return;const b=document.createElement('button');b.id='access-admin-button';b.className='access-admin-button';b.textContent='⚿ المستخدمون والصلاحيات';b.dataset.editorUi='true';document.querySelector('.cloud-bar')?.appendChild(b);b.onclick=openManager}
   const BUNDLES={viewer:{title:'عرض فقط',desc:'مشاهدة الصفحات دون تعديل',actions:['view']},data_entry:{title:'إدخال بيانات',desc:'عرض وإضافة وتعديل السجلات',actions:['view','edit','create']},coordinator:{title:'مشرف مسار',desc:'إدارة السجلات والإسناد',actions:['view','edit','create','assign']},page_manager:{title:'مدير صفحات',desc:'كامل صلاحيات المحتوى',actions:['view','edit','create','delete','assign']},none:{title:'بدون صلاحيات',desc:'إلغاء جميع الاختيارات',actions:[]}};
   function bundleMarkup(target){return Object.entries(BUNDLES).map(([id,b])=>`<button type="button" class="access-bundle" data-permission-bundle="${id}" data-bundle-target="${target}"><b>${b.title}</b><small>${b.desc}</small></button>`).join('')}
