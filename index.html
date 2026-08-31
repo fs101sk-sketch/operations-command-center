@@ -3433,7 +3433,7 @@ body.presentation-mode{overflow:hidden!important;background:#1d2421!important}bo
   const CATEGORY_LABELS={task:'مهمة',meeting:'اجتماع',deadline:'موعد نهائي',visit:'زيارة',report:'تقرير',training:'تدريب',leave:'إجازة',other:'أخرى'};
   const PRIORITY_LABELS={low:'منخفضة',medium:'متوسطة',high:'عالية',critical:'عاجلة'};
   const PRIORITY_COLORS={low:'#64748b',medium:'#0b74b8',high:'#f59e0b',critical:'#dc2626'};
-  let data=null,dataUndo=[],dataRedo=[],pickerContext=null,saveTimer=null,toastTimer=null;
+  let data=null,dataUndo=[],dataRedo=[],pickerContext=null,saveTimer=null,toastTimer=null,ganttSyncTimer=null;
 
   const clone=value=>JSON.parse(JSON.stringify(value));
   const parse=(value,fallback=null)=>{try{return JSON.parse(value)}catch(_){return fallback}};
@@ -3703,7 +3703,10 @@ body.presentation-mode{overflow:hidden!important;background:#1d2421!important}bo
   }
 
   function syncTaskFromGantt(taskEl) {
-    const id=taskEl?.dataset.taskRecordId,task=recordBy('tasks',id);if(!task)return;const gantt=taskEl.parentElement,children=Array.from(gantt.children),index=children.indexOf(taskEl),cells=children.slice(index+1,index+21);let weighted=0,hasBlocked=false,hasProgress=false;cells.forEach(cell=>{const status=cell.dataset.ganttStatus;if(status==='completed'){weighted+=1;hasProgress=true}else if(status==='in_progress'){weighted+=.5;hasProgress=true}else if(status==='blocked'){hasBlocked=true}else if(!status&&(cell.dataset.ganttColor||Array.from(cell.classList).some(c=>/^g[A-Z]|^(on|on2|eid)$/.test(c)))){weighted+=1;hasProgress=true}});const progress=Math.round((weighted/20)*100);pushDataUndo();task.title=norm(taskEl.textContent)||task.title;task.progress=progress;task.status=progress>=100?'completed':hasBlocked?'blocked':hasProgress?'in_progress':'planned';renderTasks();renderWorkload();syncCalendar();saveData();updateUndoButtons()
+    const id=taskEl?.dataset.taskRecordId,task=recordBy('tasks',id);if(!task)return false;const gantt=taskEl.parentElement,children=Array.from(gantt.children),index=children.indexOf(taskEl),cells=children.slice(index+1,index+21);let weighted=0,hasBlocked=false,hasProgress=false;cells.forEach(cell=>{const status=cell.dataset.ganttStatus;if(status==='completed'){weighted+=1;hasProgress=true}else if(status==='in_progress'){weighted+=.5;hasProgress=true}else if(status==='blocked'){hasBlocked=true}else if(!status&&(cell.dataset.ganttColor||Array.from(cell.classList).some(c=>/^g[A-Z]|^(on|on2|eid)$/.test(c)))){weighted+=1;hasProgress=true}});const progress=Math.round((weighted/20)*100),nextStatus=progress>=100?'completed':hasBlocked?'blocked':hasProgress?'in_progress':'planned',nextTitle=norm(taskEl.textContent)||task.title;
+    if(task.progress!==progress||task.status!==nextStatus||task.title!==nextTitle){pushDataUndo();task.title=nextTitle;task.progress=progress;task.status=nextStatus}
+    clearTimeout(ganttSyncTimer);ganttSyncTimer=setTimeout(()=>{renderTasks();renderWorkload();syncCalendar();saveData();updateUndoButtons()},220);
+    return true
   }
 
   function managedEvents() {
@@ -3770,7 +3773,7 @@ body.presentation-mode{overflow:hidden!important;background:#1d2421!important}bo
     document.addEventListener('focusout',event=>{if(event.target.closest('.org,.supervisor')&&event.target.matches('[contenteditable="true"],.name'))setTimeout(()=>syncPeopleFromStructure(true),30);if(event.target.classList.contains('task'))setTimeout(()=>syncTaskFromGantt(event.target),30)});
     document.addEventListener('click',event=>{const cell=event.target.closest('.gantt > div');if(cell&&!cell.classList.contains('task')){const children=Array.from(cell.parentElement.children),index=children.indexOf(cell),taskIndex=index<0?-1:index-(index%21);const nearby=children.slice(0,index+1).reverse().find(el=>el.classList.contains('task')&&!el.classList.contains('weektitle'));if(nearby)setTimeout(()=>syncTaskFromGantt(nearby),50)}},false);
     window.addEventListener('plan:event-saved',event=>updateFromCalendar(event.detail));
-    window.addEventListener('plan:gantt-status-changed',event=>{if(event.detail?.taskElement)syncTaskFromGantt(event.detail.taskElement)});
+    window.addEventListener('plan:gantt-status-changed',event=>{if(event.detail?.taskElement)event.detail.handled=syncTaskFromGantt(event.detail.taskElement)});
     window.addEventListener('plan:event-deleted',event=>{const e=event.detail;if(!e?.sourceType)return;const record=recordBy(e.sourceType,e.sourceId);if(!record)return;pushDataUndo();if(e.sourceType==='visits'){record.startDate='';record.endDate=''}if(['reports','tasks','decisions'].includes(e.sourceType))record.dueDate='';if(e.sourceType==='tasks')record.startDate='';if(e.sourceType==='meetings')record.date='';renderAllExceptCalendar();saveData();updateUndoButtons()});
   }
 
@@ -3876,7 +3879,7 @@ body.presentation-mode{overflow:hidden!important;background:#1d2421!important}bo
     if(!gantt.parentElement.querySelector('.gantt-status-legend')){const legend=document.createElement('div');legend.className='gantt-status-legend';legend.dataset.editorUi='true';legend.innerHTML=GANTT_STATUSES.map(([id,label,color])=>`<span><i style="--status-color:${color};border:${id==='none'?'1px solid #ccd5cf':'0'}"></i>${label}</span>`).join('');const hint=document.createElement('div');hint.className='gantt-status-hint';hint.dataset.editorUi='true';hint.textContent='اضغط على أي يوم داخل المسار لاختيار الحالة واللون';gantt.after(legend,hint)}
   }
   function openGanttPopover(cell){ganttCell=cell;let pop=document.getElementById('gantt-status-popover');if(!pop){pop=document.createElement('div');pop.id='gantt-status-popover';pop.className='gantt-status-popover';pop.dataset.editorUi='true';document.body.appendChild(pop)}pop.innerHTML=`<h4>حالة اليوم ${esc(cell.dataset.ganttDay||'')}</h4><p>${esc(cell.dataset.ganttTaskTitle||'المهمة')}</p><div class="gantt-status-options">${GANTT_STATUSES.map(([id,label,color])=>`<button type="button" data-set-gantt-status="${id}"><i style="--status-color:${color};border:${id==='none'?'1px solid #ccd5cf':'0'}"></i>${label}</button>`).join('')}</div>`;const rect=cell.getBoundingClientRect(),left=Math.max(8,Math.min(window.innerWidth-220,rect.left+rect.width/2-105)),top=rect.bottom+230<window.innerHeight?rect.bottom+7:Math.max(8,rect.top-225);pop.style.left=`${left}px`;pop.style.top=`${top}px`}
-  function setGanttStatus(status){if(!ganttCell)return;ganttCell.dataset.ganttStatus=status;ganttCell.dataset.ganttUpdatedAt=new Date().toISOString();const taskElement=Array.from(ganttCell.parentElement.children).slice(0,Array.from(ganttCell.parentElement.children).indexOf(ganttCell)+1).reverse().find(el=>el.classList.contains('task')&&!el.classList.contains('weektitle'));window.dispatchEvent(new CustomEvent('plan:gantt-status-changed',{detail:{cell:ganttCell,taskElement,status}}));editorAPI.save();studioAPI?.silentSave?.();closeGanttPopover()}
+  function setGanttStatus(status){if(!ganttCell)return;ganttCell.dataset.ganttStatus=status;ganttCell.dataset.ganttUpdatedAt=new Date().toISOString();const taskElement=Array.from(ganttCell.parentElement.children).slice(0,Array.from(ganttCell.parentElement.children).indexOf(ganttCell)+1).reverse().find(el=>el.classList.contains('task')&&!el.classList.contains('weektitle')),detail={cell:ganttCell,taskElement,status,handled:false};window.dispatchEvent(new CustomEvent('plan:gantt-status-changed',{detail}));if(!detail.handled)setTimeout(()=>editorAPI.save(),260);closeGanttPopover()}
   function closeGanttPopover(){document.getElementById('gantt-status-popover')?.remove();ganttCell=null}
 
   function ensureTools(){
