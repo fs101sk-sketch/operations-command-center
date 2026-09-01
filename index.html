@@ -1839,6 +1839,78 @@ body.presentation-mode{overflow:hidden!important;background:#1d2421!important}bo
 .access-bundles{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;margin:10px 0}.access-bundle{border:1px solid #d5dedb;border-radius:11px;background:#fff;padding:9px 7px;text-align:right;cursor:pointer;font-family:inherit}.access-bundle:hover{border-color:#185a4a;background:#f1f7f4}.access-bundle b,.access-bundle small{display:block}.access-bundle b{font-size:10px;color:#185a4a}.access-bundle small{font-size:8px;color:#71817b;margin-top:3px;line-height:1.4}
 body.presentation-mode .slide.slide-content-expanded{height:768px!important;overflow:auto!important}body.presentation-mode .slide.slide-content-expanded>.inner{min-height:768px!important}
 @media(max-width:900px){.people-management-grid{grid-template-columns:1fr 1fr}.executive-kpis{grid-template-columns:repeat(2,1fr)}.executive-dashboard-grid{grid-template-columns:1fr}.access-bundles{grid-template-columns:1fr 1fr}}
+
+/* ===== إصلاح المتابعة واحتواء الجداول والجوال V8 ===== */
+/* خلايا المسار تبقى بيضاء، وتظهر الحالة كدائرة وسط الخلية */
+.gantt.ganttUpdated > div:not(.task):not(.h):not(.weektitle){
+  position:relative!important;margin:0!important;border-radius:0!important;
+  background:#fff!important;background-image:none!important;color:transparent!important;
+  box-shadow:none!important;min-width:0!important;
+}
+.gantt.ganttUpdated > div.gBlue::after,.gantt.ganttUpdated > div.gGold::after,
+.gantt.ganttUpdated > div.gPurple::after,.gantt.ganttUpdated > div.gNavy::after,
+.gantt.ganttUpdated > div.gEid::after,.gantt.ganttUpdated > div.gOrange::after,
+.gantt.ganttUpdated > div.gGray::after,.gantt.ganttUpdated > div.gTeal::after,
+.gantt.ganttUpdated > div.gQuality::after,.gantt.ganttUpdated > div.gSpecial::after,
+.gantt.ganttUpdated > div[data-gantt-status]:not([data-gantt-status="none"])::after{
+  content:""!important;position:absolute!important;inset:50% auto auto 50%!important;
+  width:15px!important;height:15px!important;transform:translate(-50%,-50%)!important;
+  border-radius:50%!important;background:var(--gantt-dot,#4c82b8)!important;
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--gantt-dot,#4c82b8) 14%,transparent)!important;
+}
+.gantt.ganttUpdated > div.gBlue{--gantt-dot:#4c82b8}.gantt.ganttUpdated > div.gGold{--gantt-dot:#d7ad3f}
+.gantt.ganttUpdated > div.gPurple{--gantt-dot:#8069b2}.gantt.ganttUpdated > div.gNavy{--gantt-dot:#325f7f}
+.gantt.ganttUpdated > div.gEid{--gantt-dot:#b95757}.gantt.ganttUpdated > div.gOrange{--gantt-dot:#d98742}
+.gantt.ganttUpdated > div.gGray{--gantt-dot:#9aa29e}.gantt.ganttUpdated > div.gTeal{--gantt-dot:#3e948a}
+.gantt.ganttUpdated > div.gQuality{--gantt-dot:#4f966f}.gantt.ganttUpdated > div.gSpecial{--gantt-dot:#2f6b5c}
+.gantt.ganttUpdated > div[data-gantt-status="planned"]{--gantt-dot:#d7ad3f}
+.gantt.ganttUpdated > div[data-gantt-status="in_progress"]{--gantt-dot:#4f966f}
+.gantt.ganttUpdated > div[data-gantt-status="completed"]{--gantt-dot:#4c82b8}
+.gantt.ganttUpdated > div[data-gantt-status="blocked"]{--gantt-dot:#b95757}
+.gantt.ganttUpdated > div[data-gantt-status="postponed"]{--gantt-dot:#9aa29e}
+.gantt.ganttUpdated > div[data-gantt-status="none"]::after{content:none!important}
+.gantt-status-options i,.gantt-status-legend i{border-radius:50%!important}
+
+/* إبقاء جدول الزيارات كاملاً داخل الشريحة */
+.currentStatusSlide .inner{padding-top:21px!important;padding-bottom:18px!important}
+.currentStatusSlide .head{margin:5px 0 9px!important;padding-top:7px!important;padding-bottom:8px!important}
+.currentStatusSlide .currentStatusTable{height:auto!important;font-size:9.2px!important}
+.currentStatusSlide .currentStatusTable th{height:34px!important;padding:4px!important;font-size:9.5px!important;line-height:1.15!important}
+.currentStatusSlide .currentStatusTable td{height:23px!important;padding:2px 4px!important;font-size:9px!important;line-height:1.1!important}
+.currentStatusSlide .currentStatusTable .status{font-size:8.1px!important;padding:2px 5px!important;line-height:1.1!important}
+
+/* أي شريحة كثيفة تصغر مسافاتها أولاً قبل تمديد الصفحة */
+.slide.slide-fit-dense > .inner{padding-top:20px!important;padding-bottom:20px!important}
+.slide.slide-fit-dense .head{margin-top:3px!important;margin-bottom:9px!important;padding-top:6px!important;padding-bottom:8px!important}
+.slide.slide-fit-dense .table th,.slide.slide-fit-dense .table td{padding-top:3px!important;padding-bottom:3px!important;line-height:1.15!important}
+.slide.slide-fit-dense .op-table-scroll{max-height:535px!important}
+.slide.slide-fit-dense .gantt.ganttUpdated > div{min-height:27px!important}
+.slide.slide-fit-dense .gantt.ganttUpdated .h{min-height:44px!important}
+.slide.slide-fit-dense .gantt.ganttUpdated .weektitle{min-height:27px!important}
+
+/* عرض جوال حقيقي: الشرائح بعرض الشاشة والجداول العريضة قابلة للتمرير */
+@media(max-width:760px){
+  html,body{max-width:100%;overflow-x:hidden!important}
+  body.gov-modern-light .deck,.deck{width:100%!important;margin:64px 0 24px!important;padding:0 8px!important;gap:14px!important;box-sizing:border-box!important}
+  body.gov-modern-light .slide,.slide{width:100%!important;height:auto!important;min-height:0!important;border-radius:14px!important;overflow:visible!important;box-sizing:border-box!important}
+  body.gov-modern-light .slide>.inner,.slide>.inner{height:auto!important;min-height:0!important;padding:18px 14px 20px!important;overflow-x:auto!important;overscroll-behavior-inline:contain}
+  body.gov-modern-light .slide .head{margin:3px 0 12px!important;padding:7px 0 9px!important;position:sticky;right:0;min-width:min(100%,330px)}
+  body.gov-modern-light .slide .title h2,body.gov-modern-light .calendar-title-wrap h2{font-size:20px!important;line-height:1.3!important}
+  .grid4,.kpiColorGrid,.weekFlow,.org,.assign,.outputs2,.outputsBetter,.taskAssignmentGrid,.workload-grid,.executive-dashboard-grid{grid-template-columns:1fr!important}
+  .weekArrow{display:none!important}.coverPanel{padding:30px 18px!important}.cover h1{font-size:34px!important}.datebox{grid-template-columns:1fr!important}
+  .table,.currentStatusTable,.mergedTable,.report-table,.access-table{display:table!important;width:900px!important;min-width:900px!important;table-layout:fixed!important}
+  .currentStatusSlide .currentStatusTable{width:970px!important;min-width:970px!important}
+  .gantt.ganttUpdated{width:1180px!important;min-width:1180px!important;grid-template-columns:210px repeat(20,48px)!important}
+  .gantt.ganttUpdated > div{min-height:34px!important}.gantt.ganttUpdated .h{min-height:54px!important}
+  .op-table-scroll{width:100%;max-width:100%;overflow:auto!important;-webkit-overflow-scrolling:touch}
+  .calendar-layout{display:flex!important;flex-direction:column!important;height:auto!important;min-width:680px}
+  .calendar-side{order:-1;min-height:310px}.calendar-grid{min-height:520px}
+  .tools-master-toggle{max-width:calc(100vw - 16px)}
+  body.gov-modern-light .plan-toolbar{right:8px!important;max-width:calc(100vw - 16px)!important;max-height:70vh!important;overflow:auto!important}
+  .plan-editor-panel{max-width:calc(100vw - 16px)!important;right:8px!important;left:8px!important;width:auto!important;max-height:65vh!important;overflow:auto!important}
+  .layout-overflow-note{display:none!important}
+  .slide.slide-content-expanded{height:auto!important}.slide.slide-content-expanded>.inner{min-height:0!important}
+}
 </style>
 </head>
 <body class="">
@@ -4147,13 +4219,13 @@ body.presentation-mode .slide.slide-content-expanded{height:768px!important;over
   'use strict';
   window.__sectionAccessEnabled=true;
   const deck=document.querySelector('.deck'),modal=document.getElementById('access-modal'),msg=document.getElementById('access-message');
-  let profile=null,pages=[],permissions=[],users=[],sectionSaveTimer=null,sectionsLoaded=false,accessBundle={sections:[]};
+  let profile=null,pages=[],permissions=[],users=[],sectionSaveTimer=null,sectionsLoaded=false,accessBundle={sections:[]},sectionSaving=false,sectionSaveQueued=false;
   const auth=()=>window.PlanCloudAuth,session=()=>auth()?.getSession?.();
   const pageKey=(slide,index)=>{if(!slide.dataset.accessKey)slide.dataset.accessKey=slide.dataset.pageId||slide.dataset.govPageId||`page-${String(index+1).padStart(2,'0')}`;return slide.dataset.accessKey};
   const currentSlides=()=>Array.from(deck.querySelectorAll(':scope > .slide')).map((slide,index)=>({slide,key:pageKey(slide,index),title:(slide.querySelector('h1,h2')?.textContent||`الصفحة ${index+1}`).replace(/\s+/g,' ').trim().slice(0,120),position:index}));
   function removeDuplicatePageBatches(){let slides=Array.from(deck.querySelectorAll(':scope > .slide')),groups=new Map(),removed=0;slides.forEach(slide=>{const match=(slide.dataset.govPageId||slide.dataset.accessKey||'').match(/^page-nav-([^-]+)-/);if(match)groups.set(match[1],(groups.get(match[1])||0)+1)});if(groups.size>1){const keep=[...groups].sort((a,b)=>b[1]-a[1])[0][0];slides.forEach(slide=>{const match=(slide.dataset.govPageId||slide.dataset.accessKey||'').match(/^page-nav-([^-]+)-/);if(match&&match[1]!==keep){slide.remove();removed++}})}
     slides=Array.from(deck.querySelectorAll(':scope > .slide'));const semantic=new Map();slides.forEach(slide=>{const title=(slide.querySelector('h1,h2')?.textContent||'').replace(/\s+/g,' ').trim(),kind=slide.classList.contains('cover')?'cover':slide.classList.contains('closing')?'closing':slide.classList.contains('currentStatusSlide')?'visits':slide.classList.contains('calendarSlide')?'calendar':slide.classList.contains('responsibilitiesSlide')?'responsibilities':slide.classList.contains('outputsSlide')?'outputs':slide.classList.contains('challengesSlide')?'challenges':slide.querySelector('.gantt')?'gantt':slide.dataset.planSystem||'standard',key=`${kind}|${title||'__untitled__'}`,score=slide.outerHTML.length+(slide.classList.contains('interactive-visits')?1000000:0)+(slide.dataset.planSystem?500000:0);const prior=semantic.get(key);if(!prior||score>prior.score)semantic.set(key,{slide,score})});slides.forEach(slide=>{const title=(slide.querySelector('h1,h2')?.textContent||'').replace(/\s+/g,' ').trim(),kind=slide.classList.contains('cover')?'cover':slide.classList.contains('closing')?'closing':slide.classList.contains('currentStatusSlide')?'visits':slide.classList.contains('calendarSlide')?'calendar':slide.classList.contains('responsibilitiesSlide')?'responsibilities':slide.classList.contains('outputsSlide')?'outputs':slide.classList.contains('challengesSlide')?'challenges':slide.querySelector('.gantt')?'gantt':slide.dataset.planSystem||'standard',key=`${kind}|${title||'__untitled__'}`;if(semantic.get(key)?.slide!==slide){slide.remove();removed++}});return removed}
-  function fitSlideLayouts(){requestAnimationFrame(()=>{deck.querySelectorAll(':scope > .slide').forEach(slide=>{slide.classList.remove('slide-content-expanded');slide.style.removeProperty('--expanded-slide-height');slide.querySelector(':scope > .layout-overflow-note')?.remove();const inner=slide.querySelector(':scope > .inner'),needed=Math.max(slide.scrollHeight,inner?.scrollHeight||0);if(needed>slide.clientHeight+10){slide.classList.add('slide-content-expanded');slide.style.setProperty('--expanded-slide-height',`${Math.ceil(needed+42)}px`);const note=document.createElement('span');note.className='layout-overflow-note';note.dataset.editorUi='true';note.textContent='صفحة ممتدة — كامل المحتوى ظاهر';slide.appendChild(note)}slide.classList.add('layout-checked')})})}
+  function fitSlideLayouts(){requestAnimationFrame(()=>{const mobile=matchMedia('(max-width:760px)').matches;deck.querySelectorAll(':scope > .slide').forEach(slide=>{slide.classList.remove('slide-content-expanded','slide-fit-dense');slide.style.removeProperty('--expanded-slide-height');slide.querySelector(':scope > .layout-overflow-note')?.remove();if(mobile){slide.classList.add('layout-checked');return}const inner=slide.querySelector(':scope > .inner');let needed=Math.max(slide.scrollHeight,inner?.scrollHeight||0);if(needed>slide.clientHeight+10){slide.classList.add('slide-fit-dense');needed=Math.max(slide.scrollHeight,inner?.scrollHeight||0)}if(needed>slide.clientHeight+10){slide.classList.add('slide-content-expanded');slide.style.setProperty('--expanded-slide-height',`${Math.ceil(needed+42)}px`);const note=document.createElement('span');note.className='layout-overflow-note';note.dataset.editorUi='true';note.textContent='صفحة ممتدة — كامل المحتوى ظاهر';slide.appendChild(note)}slide.classList.add('layout-checked')})})}
   async function rpc(name,args={}){return auth().rpc(name,args)}
   function can(key,action){if(profile?.role==='admin')return true;const p=permissions.find(x=>x.page_key===key);return Boolean(p?.[`can_${action}`])}
   function applyVisibility(){
@@ -4175,7 +4247,8 @@ body.presentation-mode .slide.slide-content-expanded{height:768px!important;over
     await rpc('app_admin_register_pages',{p_token:session().local_token,p_pages:payload});
   }
   async function loadSections(){const rows=accessBundle.sections||[];if(!rows.length||sectionsLoaded){fitSlideLayouts();return}deck.innerHTML=rows.map(row=>row.content?.html||'').join('');removeDuplicatePageBatches();sectionsLoaded=true;window.PlanOperatingUI?.rehydrate?.();window.PlanEditorAPI?.renderCalendar?.();window.PlanStudioAPI?.renderPageManager?.();fitSlideLayouts()}
-  function saveSections(){if(!session()?.local_token)return;clearTimeout(sectionSaveTimer);sectionSaveTimer=setTimeout(async()=>{let saved=0,failed=0,lastError='';for(const {slide,key} of currentSlides()){if(profile?.role!=='admin'&&!can(key,'edit'))continue;const known=(accessBundle.sections||[]).find(x=>x.page_key===key),version=Number(known?.version||1),content={html:slide.outerHTML};try{const next=await rpc('app_save_section',{p_token:session().local_token,p_page_key:key,p_content:content,p_version:version});if(known){known.version=next;known.content=content}else{accessBundle.sections.push({page_key:key,version:next,content})}saved++}catch(error){failed++;lastError=error?.message||''}}window.dispatchEvent(new CustomEvent('plan:sections-saved',{detail:{success:failed===0,saved,failed,message:lastError}}))},1100)}
+  function saveSections(){if(!session()?.local_token)return;clearTimeout(sectionSaveTimer);sectionSaveTimer=setTimeout(runSectionSave,1100)}
+  async function runSectionSave(){if(sectionSaving){sectionSaveQueued=true;return}sectionSaving=true;let saved=0,failed=0,lastError='';try{for(const {slide,key} of currentSlides()){if(profile?.role!=='admin'&&!can(key,'edit'))continue;const known=(accessBundle.sections||[]).find(x=>x.page_key===key),version=Number(known?.version||1),content={html:slide.outerHTML};try{const next=await rpc('app_save_section',{p_token:session().local_token,p_page_key:key,p_content:content,p_version:version});if(known){known.version=next;known.content=content}else{accessBundle.sections.push({page_key:key,version:next,content})}saved++}catch(error){failed++;lastError=error?.message||''}}}finally{sectionSaving=false;window.dispatchEvent(new CustomEvent('plan:sections-saved',{detail:{success:failed===0,saved,failed,message:lastError}}));if(sectionSaveQueued){sectionSaveQueued=false;sectionSaveTimer=setTimeout(runSectionSave,250)}}}
   function ensureAdminButton(){if(document.getElementById('access-admin-button'))return;const b=document.createElement('button');b.id='access-admin-button';b.className='access-admin-button';b.textContent='⚿ المستخدمون والصلاحيات';b.dataset.editorUi='true';document.querySelector('.cloud-bar')?.appendChild(b);b.onclick=openManager}
   const BUNDLES={viewer:{title:'عرض فقط',desc:'مشاهدة الصفحات دون تعديل',actions:['view']},data_entry:{title:'إدخال بيانات',desc:'عرض وإضافة وتعديل السجلات',actions:['view','edit','create']},coordinator:{title:'مشرف مسار',desc:'إدارة السجلات والإسناد',actions:['view','edit','create','assign']},page_manager:{title:'مدير صفحات',desc:'كامل صلاحيات المحتوى',actions:['view','edit','create','delete','assign']},none:{title:'بدون صلاحيات',desc:'إلغاء جميع الاختيارات',actions:[]}};
   function bundleMarkup(target){return Object.entries(BUNDLES).map(([id,b])=>`<button type="button" class="access-bundle" data-permission-bundle="${id}" data-bundle-target="${target}"><b>${b.title}</b><small>${b.desc}</small></button>`).join('')}
