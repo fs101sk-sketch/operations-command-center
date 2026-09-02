@@ -1,0 +1,26 @@
+name: Temporary source export
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Package current source
+        run: |
+          mkdir -p export
+          cp index.html export/index.html
+          cp README.md export/README.md
+          printf '%s\n' "$GITHUB_SHA" > export/commit.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: operations-source-snapshot
+          path: export
+          retention-days: 1
