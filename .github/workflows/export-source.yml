@@ -1,0 +1,27 @@
+name: Export source snapshot
+
+on:
+  push:
+    branches:
+      - feature/calendar-balance-2026
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Package source
+        run: |
+          mkdir -p export
+          cp index.html export/index.html
+          cp README.md export/README.md
+          printf '%s\n' "$GITHUB_SHA" > export/commit.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: operations-source-snapshot
+          path: export
+          retention-days: 1
