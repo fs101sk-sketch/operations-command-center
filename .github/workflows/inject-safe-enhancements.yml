@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Load isolated stable modules
+      - name: Load delayed stable bootstrap
         run: |
           python - <<'PY'
           from pathlib import Path
@@ -24,15 +24,13 @@ jobs:
           marker='<!-- OCC SAFE ENHANCEMENTS 2026-09-03 -->'
           old='\n'.join([
               marker,
-              '<script src="enhancements/calendar-views.js?v=20260903-3"></script>',
-              '<script src="enhancements/balance-2026.js?v=20260903-3"></script>',
-              '<script src="enhancements/library-readonly.js?v=20260903-3"></script>'
-          ])
-          new='\n'.join([
-              marker,
               '<script src="enhancements/calendar-views-v4.js?v=20260903-4"></script>',
               '<script src="enhancements/balance-2026-v4.js?v=20260903-4"></script>',
               '<script src="enhancements/library-add-fix.js?v=20260903-4"></script>'
+          ])
+          new='\n'.join([
+              marker,
+              '<script src="enhancements/bootstrap-v5.js?v=20260903-5"></script>'
           ])
           if new in s:
               pass
@@ -41,14 +39,13 @@ jobs:
           elif marker not in s and '</body>' in s:
               s=s.replace('</body>','\n'+new+'\n</body>',1)
           else:
-              raise SystemExit('enhancement loader block could not be updated safely')
+              raise SystemExit('enhancement bootstrap block could not be updated safely')
           p.write_text(s,encoding='utf-8')
           PY
       - name: Validate references
         run: |
-          grep -q 'enhancements/calendar-views-v4.js?v=20260903-4' index.html
-          grep -q 'enhancements/balance-2026-v4.js?v=20260903-4' index.html
-          grep -q 'enhancements/library-add-fix.js?v=20260903-4' index.html
+          grep -q 'enhancements/bootstrap-v5.js?v=20260903-5' index.html
+          test -s enhancements/bootstrap-v5.js
           test -s enhancements/calendar-views-v4.js
           test -s enhancements/balance-2026-v4.js
           test -s enhancements/library-add-fix.js
@@ -58,5 +55,5 @@ jobs:
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git add index.html
-          git commit -m 'Load stable v4 operations enhancements'
+          git commit -m 'Load delayed stable operations bootstrap'
           git push
