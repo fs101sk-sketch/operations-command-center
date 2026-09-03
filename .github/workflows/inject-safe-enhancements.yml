@@ -15,33 +15,46 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Inject isolated scripts
+      - name: Load isolated stable modules
         run: |
           python - <<'PY'
           from pathlib import Path
+          import re
           p=Path('index.html')
           s=p.read_text(encoding='utf-8')
           marker='<!-- OCC SAFE ENHANCEMENTS 2026-09-03 -->'
-          block='''\n<!-- OCC SAFE ENHANCEMENTS 2026-09-03 -->\n<script src="enhancements/calendar-views.js?v=20260903-3"></script>\n<script src="enhancements/balance-2026.js?v=20260903-3"></script>\n<script src="enhancements/library-readonly.js?v=20260903-3"></script>\n'''
-          if marker not in s:
+          block='''<!-- OCC SAFE ENHANCEMENTS 2026-09-03 -->
+<script src="enhancements/calendar-views-v4.js?v=20260903-4"></script>
+<script src="enhancements/balance-2026-v4.js?v=20260903-4"></script>
+<script src="enhancements/library-add-fix.js?v=20260903-4"></script>'''
+          if marker in s:
+              pattern=r'<!-- OCC SAFE ENHANCEMENTS 2026-09-03 -->\s*<script[^>]+enhancements/calendar-views[^>]*></script>\s*<script[^>]+enhancements/balance-2026[^>]*></script>\s*<script[^>]+enhancements/(?:library-readonly|library-add-fix)[^>]*></script>'
+              s2,n=re.subn(pattern,block,s,count=1)
+              if n!=1:
+                  raise SystemExit('existing enhancement block could not be replaced safely')
+              s=s2
+          else:
               if '</body>' not in s:
                   raise SystemExit('index.html has no closing body tag')
-              s=s.replace('</body>',block+'\n</body>',1)
-              p.write_text(s,encoding='utf-8')
+              s=s.replace('</body>','\n'+block+'\n</body>',1)
+          p.write_text(s,encoding='utf-8')
           PY
-      - name: Validate unchanged core and script references
+      - name: Validate core and references
         run: |
-          grep -q 'enhancements/calendar-views.js' index.html
-          grep -q 'enhancements/balance-2026.js' index.html
-          grep -q 'enhancements/library-readonly.js' index.html
-          test -s enhancements/calendar-views.js
-          test -s enhancements/balance-2026.js
-          test -s enhancements/library-readonly.js
-      - name: Commit injection if needed
+          grep -q 'enhancements/calendar-views-v4.js?v=20260903-4' index.html
+          grep -q 'enhancements/balance-2026-v4.js?v=20260903-4' index.html
+          grep -q 'enhancements/library-add-fix.js?v=20260903-4' index.html
+          ! grep -q 'enhancements/calendar-views.js?v=20260903-3' index.html
+          ! grep -q 'enhancements/balance-2026.js?v=20260903-3' index.html
+          ! grep -q 'enhancements/library-readonly.js?v=20260903-3' index.html
+          test -s enhancements/calendar-views-v4.js
+          test -s enhancements/balance-2026-v4.js
+          test -s enhancements/library-add-fix.js
+      - name: Commit loader change if needed
         run: |
           if git diff --quiet; then exit 0; fi
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git add index.html
-          git commit -m 'Load isolated calendar, balance, and read-only library enhancements'
+          git commit -m 'Load stable v4 operations enhancements'
           git push
