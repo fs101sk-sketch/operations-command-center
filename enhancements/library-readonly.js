@@ -1,25 +1,44 @@
 (() => {
   'use strict';
-  const lock=()=>{
+  /* Compatibility repair for the existing resource-library module.
+     It never rewrites cards or saved library content. */
+  const session=()=>window.PlanCloudAuth?.getSession?.();
+  function repair(){
     const slide=document.querySelector('.resource-library-slide');
     if(!slide)return;
-    slide.dataset.accessEdit='false';
-    slide.dataset.accessCreate='false';
-    slide.dataset.accessDelete='false';
-    slide.querySelectorAll('[draggable="true"]').forEach(el=>el.removeAttribute('draggable'));
-    const stats=slide.querySelector('.resource-library-stats');
-    if(stats&&!stats.querySelector('[data-library-readonly-note]')){
-      const note=document.createElement('span');
-      note.dataset.libraryReadonlyNote='true';
-      note.textContent='المكتبة للعرض فقط · الإضافة والتعديل معطّلان';
-      note.style.cssText='padding:4px 8px;border-radius:999px;background:#eef3f1;color:#61736d;font-size:8px;font-weight:900';
-      stats.appendChild(note);
+    document.querySelectorAll('[data-library-readonly-note]').forEach(n=>n.remove());
+    const user=session()?.user;
+    const signedIn=Boolean(session()?.local_token);
+    const admin=user?.role==='admin';
+    /* Access manager remains the authority. We only clear the accidental
+       client-side lock that was introduced by the previous enhancement. */
+    if(admin){
+      slide.dataset.accessEdit='true';
+      slide.dataset.accessCreate='true';
+      slide.dataset.accessDelete='true';
+      slide.dataset.accessAssign='true';
+      document.body.classList.add('cloud-editor');
     }
-  };
-  const blocked='[data-resource-add],[data-resource-action="edit"],[data-resource-action="delete"],[data-resource-action="pin"],[data-resource-action="up"],[data-resource-action="down"]';
-  document.addEventListener('click',e=>{if(e.target.closest(`.resource-library-slide ${blocked}`)){e.preventDefault();e.stopImmediatePropagation();}},true);
-  document.addEventListener('dragstart',e=>{if(e.target.closest('.resource-library-slide .resource-card')){e.preventDefault();e.stopImmediatePropagation();}},true);
-  document.addEventListener('submit',e=>{if(e.target.closest('.resource-library-slide .resource-form')){e.preventDefault();e.stopImmediatePropagation();}},true);
-  const init=()=>{lock();const deck=document.querySelector('.deck');if(deck)new MutationObserver(()=>setTimeout(lock,40)).observe(deck,{childList:true,subtree:true});};
+    const add=slide.querySelector('[data-resource-add]');
+    if(add){
+      const allowed=signedIn && (admin || (slide.dataset.accessCreate!=='false' && slide.dataset.accessEdit!=='false'));
+      add.disabled=!allowed;
+      add.title=allowed?'إضافة مورد إلى مكتبة القادة':'لا توجد صلاحية إضافة في هذه الصفحة';
+    }
+    slide.querySelectorAll('.resource-card').forEach(card=>{
+      if(signedIn && slide.dataset.accessEdit!=='false')card.setAttribute('draggable','true');
+    });
+    window.PlanResourceLibrary?.rehydrate?.();
+  }
+  function init(){
+    repair();
+    const deck=document.querySelector('.deck');
+    if(deck)new MutationObserver(m=>{
+      if(m.some(x=>[...x.addedNodes].some(n=>n.nodeType===1 && (n.matches?.('.resource-library-slide')||n.querySelector?.('.resource-library-slide')))))setTimeout(repair,50);
+    }).observe(deck,{childList:true});
+    window.addEventListener('plan:auth-changed',()=>setTimeout(repair,80));
+    window.addEventListener('plan:sections-saved',()=>setTimeout(repair,80));
+    setTimeout(repair,500);
+  }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();
