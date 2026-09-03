@@ -7,6 +7,8 @@
   const modules = [
     'enhancements/calendar-views-v6.js?v=20260903-6',
     'enhancements/balance-2026-v6.js?v=20260903-6',
+    'enhancements/balance-editor-v7.js?v=20260903-7',
+    'enhancements/resident-affairs-bundle-v7.js?v=20260903-7',
     'enhancements/library-add-fix.js?v=20260903-6'
   ];
   let attempts = 0;
@@ -48,7 +50,7 @@
     try {
       loadStyle(styleHref);
       for (const src of modules) await load(src);
-      console.info('[operations-command-center] stable enhancements v6 ready');
+      console.info('[operations-command-center] stable enhancements v7 ready');
     } catch (error) {
       console.error('[operations-command-center] safe module load failed', error);
     }
