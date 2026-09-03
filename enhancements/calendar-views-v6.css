@@ -1,0 +1,40 @@
+.calendar-view-switch{display:inline-flex;gap:3px;padding:3px;border:1px solid var(--gov-line,#dfe4df);border-radius:10px;background:#f4f7f5;order:-1}
+.calendar-view-switch button{height:31px;min-width:54px;border:0;border-radius:7px;background:transparent;color:var(--gov-muted,#6f7b76);font:900 9px 'Tajawal',Tahoma,sans-serif;cursor:pointer}
+.calendar-view-switch button.active{background:var(--gov-accent,#2f6b5c);color:#fff;box-shadow:0 4px 12px rgba(47,107,92,.18)}
+.calendar-main>.calendar-primary-view{display:none;min-height:0;flex:1}
+.calendar-main>.calendar-primary-view.active{display:flex}
+.calendar-month-view{flex-direction:column}
+.calendar-month-view .calendar-grid{flex:1}
+.calendar-day-view{flex-direction:column;gap:8px;overflow:auto;padding:4px}
+.calendar-day-view-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border:1px solid var(--gov-line,#dfe4df);border-radius:12px;background:#f7f9f7}
+.calendar-day-view-head strong{display:block;color:var(--gov-ink,#26332f);font-size:14px}
+.calendar-day-view-head span{display:block;margin-top:2px;color:var(--gov-muted,#6f7b76);font-size:9px;font-weight:800}
+.calendar-day-view-head button{height:34px;border:0;border-radius:9px;background:var(--gov-accent,#2f6b5c);color:#fff;padding:0 12px;font:900 9px 'Tajawal';cursor:pointer}
+.calendar-day-timeline{position:relative;border:1px solid var(--gov-line,#dfe4df);border-radius:12px;background:#fff;overflow:auto;min-height:0;flex:1}
+.calendar-hour-row{display:grid;grid-template-columns:58px 1fr;min-height:42px;border-bottom:1px solid #edf0ed}
+.calendar-hour-row:last-child{border-bottom:0}
+.calendar-hour-row time{padding:7px;color:#82908a;font-size:8px;font-weight:900;border-left:1px solid #edf0ed;text-align:center;direction:ltr}
+.calendar-hour-row>div{display:flex;gap:5px;flex-wrap:wrap;padding:4px}
+.calendar-day-agenda-item{min-width:170px;flex:1;border:1px solid #e2e8e4;border-right:5px solid var(--agenda-color,#2f6b5c);border-radius:8px;background:#fafcfa;padding:6px 8px;text-align:right;cursor:pointer}
+.calendar-day-agenda-item strong{display:block;color:var(--gov-ink,#26332f);font:900 9px 'Tajawal'}
+.calendar-day-agenda-item span{display:block;margin-top:2px;color:var(--gov-muted,#6f7b76);font:800 7.5px 'Tajawal'}
+.calendar-day-floating{display:flex;gap:5px;flex-wrap:wrap;padding:7px;background:#f5f8f6;border-bottom:1px solid var(--gov-line,#dfe4df)}
+.calendar-day-topics{display:flex;gap:5px;flex-wrap:wrap;align-items:center;padding:8px;border:1px solid var(--gov-line,#dfe4df);border-radius:10px;background:#fff}
+.calendar-day-topics>strong{font-size:9px;color:var(--gov-ink,#26332f)}
+.calendar-day-topics span{padding:4px 7px;border-radius:99px;background:#f2f5f3;color:#53645d;font-size:8px;font-weight:800}
+.calendar-day-topics span.done{text-decoration:line-through;opacity:.65}
+.calendar-year-view.active{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;overflow:auto;padding:3px}
+.calendar-mini-month{border:1px solid var(--gov-line,#dfe4df);border-radius:11px;background:#fff;padding:7px;text-align:right;transition:.15s}
+.calendar-mini-month:hover{border-color:var(--gov-accent,#2f6b5c);transform:translateY(-1px);box-shadow:0 7px 18px rgba(30,53,43,.08)}
+.calendar-mini-month-title{width:100%;display:flex;align-items:center;justify-content:space-between;border:0;background:transparent;padding:0 0 5px;color:var(--gov-ink,#26332f);cursor:pointer;font-family:'Tajawal',Tahoma,sans-serif}
+.calendar-mini-month-title strong{font-size:10px;font-weight:900}
+.calendar-mini-month-title span{font-size:7px;color:var(--gov-muted,#6f7b76);font-weight:800}
+.calendar-mini-weekdays,.calendar-mini-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;direction:rtl}
+.calendar-mini-weekdays i{display:grid;place-items:center;height:15px;color:#89958f;font:900 6.5px 'Tajawal';font-style:normal}
+.calendar-mini-grid>i,.calendar-mini-day{position:relative;display:grid;place-items:center;aspect-ratio:1;border:0;border-radius:4px;background:transparent;color:#65736d;font:800 7px 'Tajawal';padding:0;cursor:pointer}
+.calendar-mini-day:hover{background:#e6efea}
+.calendar-mini-day.has-events{background:#edf4f0;color:var(--gov-accent,#2f6b5c);font-weight:950}
+.calendar-mini-day.today{outline:1px solid var(--gov-accent,#2f6b5c)}
+.calendar-mini-day b{position:absolute;bottom:0;left:1px;min-width:9px;height:9px;padding:0 2px;border-radius:5px;background:var(--gov-accent,#2f6b5c);color:#fff;font:800 5.5px/9px 'Tajawal'}
+@media(max-width:1024px),(hover:none) and (pointer:coarse){.calendar-view-switch{width:100%;order:5}.calendar-view-switch button{flex:1;height:40px;font-size:10px}.calendar-year-view.active{grid-template-columns:repeat(2,minmax(0,1fr))!important}.calendar-day-view{min-width:620px}.calendar-main>.calendar-primary-view.active{min-height:520px}.calendar-header{flex-wrap:wrap}}
+@media(max-width:560px){.calendar-year-view.active{grid-template-columns:1fr!important}.calendar-day-view{min-width:560px}}
