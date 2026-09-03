@@ -28,25 +28,26 @@ jobs:
               raise SystemExit('balance compatibility point not found')
           target.write_text(text.replace(old,new,1),encoding='utf-8')
           PY
-      - name: Switch loader to v7 bootstrap
+      - name: Switch loader to v8 bootstrap cache key
         run: |
           python - <<'PY'
           from pathlib import Path
           p=Path('index.html')
           s=p.read_text(encoding='utf-8')
           marker='<!-- OCC SAFE ENHANCEMENTS 2026-09-03 -->'
-          old='\n'.join([marker,'<script src="enhancements/bootstrap-v6.js?v=20260903-6"></script>'])
-          new='\n'.join([marker,'<script src="enhancements/bootstrap-v7.js?v=20260903-7"></script>'])
+          old='\n'.join([marker,'<script src="enhancements/bootstrap-v7.js?v=20260903-7"></script>'])
+          new='\n'.join([marker,'<script src="enhancements/bootstrap-v7.js?v=20260903-8"></script>'])
           if new in s: pass
           elif old in s: s=s.replace(old,new,1)
           elif marker not in s and '</body>' in s: s=s.replace('</body>','\n'+new+'\n</body>',1)
           else: raise SystemExit('enhancement bootstrap block could not be updated safely')
           p.write_text(s,encoding='utf-8')
           PY
-      - name: Validate v7 files and loader
+      - name: Validate v8 user management loader
         run: |
-          grep -q 'enhancements/bootstrap-v7.js?v=20260903-7' index.html
+          grep -q 'enhancements/bootstrap-v7.js?v=20260903-8' index.html
           test -s enhancements/bootstrap-v7.js
+          test -s enhancements/user-management-v8.js
           test -s enhancements/calendar-views-v6.js
           test -s enhancements/calendar-views-v6.css
           test -s enhancements/balance-2026-v6.js
@@ -59,5 +60,5 @@ jobs:
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git add index.html enhancements/balance-2026-v6.js
-          git commit -m 'Load v7 editable Balance 2026 enhancements'
+          git commit -m 'Load v8 user account management enhancements'
           git push
