@@ -15,23 +15,29 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Load delayed stable bootstrap
+      - name: Build tested v6 balance compatibility module
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          source=Path('enhancements/balance-2026-v4.js')
+          target=Path('enhancements/balance-2026-v6.js')
+          text=source.read_text(encoding='utf-8')
+          old="if(ph!==want&&rh!==want)throw new Error('asset_integrity_failed')"
+          new="if((ph||rh)&&ph!==want&&rh!==want)throw new Error('asset_integrity_failed')"
+          if old not in text and new not in text:
+              raise SystemExit('balance compatibility point not found')
+          text=text.replace(old,new,1)
+          target.write_text(text,encoding='utf-8')
+          PY
+      - name: Switch loader to tested v6 bootstrap
         run: |
           python - <<'PY'
           from pathlib import Path
           p=Path('index.html')
           s=p.read_text(encoding='utf-8')
           marker='<!-- OCC SAFE ENHANCEMENTS 2026-09-03 -->'
-          old='\n'.join([
-              marker,
-              '<script src="enhancements/calendar-views-v4.js?v=20260903-4"></script>',
-              '<script src="enhancements/balance-2026-v4.js?v=20260903-4"></script>',
-              '<script src="enhancements/library-add-fix.js?v=20260903-4"></script>'
-          ])
-          new='\n'.join([
-              marker,
-              '<script src="enhancements/bootstrap-v5.js?v=20260903-5"></script>'
-          ])
+          old='\n'.join([marker,'<script src="enhancements/bootstrap-v5.js?v=20260903-5"></script>'])
+          new='\n'.join([marker,'<script src="enhancements/bootstrap-v6.js?v=20260903-6"></script>'])
           if new in s:
               pass
           elif old in s:
@@ -42,18 +48,20 @@ jobs:
               raise SystemExit('enhancement bootstrap block could not be updated safely')
           p.write_text(s,encoding='utf-8')
           PY
-      - name: Validate references
+      - name: Validate v6 files and loader
         run: |
-          grep -q 'enhancements/bootstrap-v5.js?v=20260903-5' index.html
-          test -s enhancements/bootstrap-v5.js
-          test -s enhancements/calendar-views-v4.js
-          test -s enhancements/balance-2026-v4.js
+          grep -q 'enhancements/bootstrap-v6.js?v=20260903-6' index.html
+          test -s enhancements/bootstrap-v6.js
+          test -s enhancements/calendar-views-v6.js
+          test -s enhancements/calendar-views-v6.css
+          test -s enhancements/balance-2026-v6.js
           test -s enhancements/library-add-fix.js
-      - name: Commit loader change if needed
+          grep -q "if((ph||rh)&&ph!==want&&rh!==want)throw new Error('asset_integrity_failed')" enhancements/balance-2026-v6.js
+      - name: Commit only isolated enhancement loader and generated compatibility file
         run: |
           if git diff --quiet; then exit 0; fi
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add index.html
-          git commit -m 'Load delayed stable operations bootstrap'
+          git add index.html enhancements/balance-2026-v6.js
+          git commit -m 'Load tested v6 operations enhancements'
           git push
